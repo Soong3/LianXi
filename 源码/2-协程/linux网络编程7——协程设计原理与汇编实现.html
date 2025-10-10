@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8">
+  <link rel="canonical" href="https://blog.csdn.net/leedcanDD/article/details/143352170">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="report" content="{&quot;pid&quot;: &quot;blog&quot;, &quot;spm&quot;:&quot;1001.2101&quot;}">
+  <meta name="referrer" content="always">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <link rel="alternate" media="handheld" href="#">
+  <meta name="shenma-site-verification" content="5a59773ab8077d4a62bf469ab966a63b_1497598848">
+  <meta name="applicable-device" content="pc">
+  <link href="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/static/logo/favicon32.ico" rel="shortcut icon" type="image/x-icon">
+  <title>linux网络编程7——协程设计原理与汇编实现_linux 协程-CSDN博客</title>
+  <meta name="keywords" content="linux 协程">
+  <meta name="csdn-baidu-search" content="{&quot;autorun&quot;:true,&quot;install&quot;:true,&quot;keyword&quot;:&quot;linux 协程&quot;}">
+  <meta name="description" content="文章浏览阅读905次，点赞12次，收藏11次。本文介绍了协程的概念、特征、优势、以及其实现原理。_linux 协程">
+  <link rel="stylesheet" type="text/css" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/css/detail_enter-2569705caf.min.css">
+  <link rel="stylesheet" type="text/css" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/themesSkin/skin-number/skin-number-2c93789924.min.css">
+  <script src="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/lib/jquery/1.12.4/jquery.min.js" type="text/javascript"></script>
+  <meta name="toolbar" content="{&quot;type&quot;:&quot;0&quot;,&quot;fixModel&quot;:&quot;1&quot;}">
+  <link rel="stylesheet" type="text/css" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/public/sandalstrap/1.4/css/sandalstrap.min.css">
+  <style>
+        .MathJax, .MathJax_Message, .MathJax_Preview{
+            display: none
+        }
+    </style>
+ </head>
+ <body class="nodata  " style="">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/css/blog_code-01256533b5.min.css">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/editerView/chart-3456820cac.css">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/lib/swiper/6.0.4/css/swiper.css"><div class="main_father clearfix d-flex justify-content-center mainfather-concision" style="height:100%;"><div class="container clearfix container-concision" id="mainBox">
+    <main>
+     <div class="blog-content-box"><div class="article-header-box"><div class="article-header"><div class="article-title-box">
+         <h1 class="title-article" id="articleContentId">linux网络编程7——协程设计原理与汇编实现</h1></div><div class="article-info-box"><div class="up-time">
+          最新推荐文章于&nbsp;2025-05-20 14:14:00&nbsp;发布</div><div class="article-bar-top-box"><div class="article-bar-top"><img class="article-type-img" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/original.png" alt=""><div class="bar-content"> <a class="follow-nickName " href="https://blog.csdn.net/leedcanDD" target="_blank" rel="noopener" title="HilariousDog">HilariousDog</a> <img class="article-time-img article-heard-img" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/newCurrentTime2.png" alt=""> <span class="time blog-postTime" data-time="2024-10-29 23:04:09">最新推荐文章于&nbsp;2025-05-20 14:14:00&nbsp;发布</span>
+            <div class="read-count-box"><img class="article-read-img article-heard-img" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/articleReadEyes2.png" alt=""> <span class="read-count">阅读量905</span> <a id="blog_detail_zk_collection" class="un-collection" data-report-click="{&quot;mod&quot;:&quot;popu_823&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4232&quot;,&quot;ab&quot;:&quot;new&quot;}"> <img class="article-collect-img article-heard-img un-collect-status isdefault" style="display:inline-block" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/tobarCollect2.png" alt=""> <img class="article-collect-img article-heard-img collect-status isactive" style="display:none" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/tobarCollectionActive2.png" alt=""> <span class="name">收藏</span> <span class="get-collection"> 11 </span> </a>
+             <div class="read-count-box is-like" data-type="top"><img class="article-read-img article-heard-img" style="display:none" id="is-like-imgactive-new" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/newHeart2023Active.png" alt=""> <img class="article-read-img article-heard-img" style="display:block" id="is-like-img-new" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/newHeart2023Black.png" alt=""> <span class="read-count" id="blog-digg-num">点赞数 12 </span></div></div></div></div><div class="operating"><a class="href-article-edit slide-toggle">CC 4.0 BY-SA版权</a></div></div><div class="blog-tags-box"><div class="tags-box artic-tag-box"><span class="label">分类专栏：</span> <a class="tag-link" href="https://blog.csdn.net/leedcandd/category_12301674.html" target="_blank" rel="noopener">linux学习</a> <a class="tag-link" href="https://blog.csdn.net/leedcandd/category_12814009.html" target="_blank" rel="noopener">网络编程</a> <span class="label">文章标签：</span> <a rel="nofollow" data-report-query="spm=1001.2101.3001.4223" data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;linux&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;linux\&quot;}&quot;}" data-report-view="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;linux&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;linux\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=linux&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=&amp;from_tracking_code=tag_word&amp;from_code=app_blog_art" target="_blank">linux</a> <a rel="nofollow" data-report-query="spm=1001.2101.3001.4223" data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;汇编&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;汇编\&quot;}&quot;}" data-report-view="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;汇编&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;汇编\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=%E6%B1%87%E7%BC%96&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=&amp;from_tracking_code=tag_word&amp;from_code=app_blog_art" target="_blank">汇编</a> <a rel="nofollow" data-report-query="spm=1001.2101.3001.4223" data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;运维&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;运维\&quot;}&quot;}" data-report-view="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;运维&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;运维\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=%E8%BF%90%E7%BB%B4&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=&amp;from_tracking_code=tag_word&amp;from_code=app_blog_art" target="_blank">运维</a></div></div><div class="slide-content-box"><div class="article-copyright"><div class="creativecommons">
+            版权声明：本文为博主原创文章，遵循<a href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener"> CC 4.0 BY-SA </a>版权协议，转载请附上原文出处链接和本声明。</div><div class="article-source-link">
+            本文链接：<a href="https://blog.csdn.net/leedcanDD/article/details/143352170" target="_blank">https://blog.csdn.net/leedcanDD/article/details/143352170</a></div></div></div></div></div></div><div id="blogHuaweiyunAdvert" class=""></div>
+      <article class="baidu_pl"><div id="article_content" class="article_content clearfix">
+        <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/editerView/kdoc_html_views-1a98987dfd.css">
+        <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/editerView/ck_htmledit_views-10bf609291.css"><div id="content_views" class="markdown_views prism-atom-one-light">
+         <svg xmlns="http://www.w3.org/2000/svg" style="display: none;"><path stroke-linecap="round" d="M5,0 0,2.5 5,5z" id="raphael-marker-block" style="-webkit-tap-highlight-color: rgba(0, 0, 0, 0);"></path>
+         </svg>
+         <p></p>
+         <div class="toc">
+          <h4>文章目录</h4>
+          <ul>
+           <li><a href="#_1">协程设计原理与汇编实现</a></li><li>
+            <ul>
+             <li><a href="#1__5">1. 协程概念</a></li><li><a href="#2__46">2. 协程的实现</a></li><li>
+              <ul>
+               <li><a href="#21_setjmp_48">2.1 setjmp</a></li><li><a href="#22_ucontext_101">2.2 ucontext</a></li><li><a href="#23__187">2.3 汇编实现</a></li><li><a href="#24__225">2.4 优缺点</a></li><li><a href="#25__231">2.5 实现协程原语</a></li><li>
+                <ul>
+                 <li><a href="#251_create_233">2.5.1 create()</a></li><li><a href="#252_yield_269">2.5.2 yield()</a></li><li><a href="#253_resume_273">2.5.3 resume()</a></li><li><a href="#254_exit_277">2.5.4 exit()</a></li><li><a href="#255_switch_281">2.5.5 switch()</a></li><li><a href="#256_sleep_285">2.5.6 sleep()</a></li>
+                </ul></li><li><a href="#26__289">2.6 协程调度器</a></li>
+              </ul></li><li><a href="#3_hook_324">3. 利用hook使用协程版本的库函数</a></li><li><a href="#_354">学习参考</a></li>
+            </ul></li>
+          </ul></div>
+         <p></p>
+         <h2><a id="_1"></a>协程设计原理与汇编实现</h2>
+         <blockquote>
+          <p>本文介绍了协程的概念、特征、优势、以及其实现原理。</p>
+         </blockquote>
+         <h3><a id="1__5"></a>1. 协程概念</h3>
+         <p><strong>协程</strong>是一种轻量级的用户态线程。它允许在单个线程内执行多个任务，使得程序可以在不同的函数之间灵活地切换，以便更好地利用 CPU 资源。这种机制特别适合 IO 密集型任务（如网络请求、文件读写）和异步编程场景。协程可以被暂停和恢复，避免了阻塞等待，同时不需要系统级线程的切换成本。</p>
+         <p><strong>协程的实现在底层是由执行流的跳转切换机制实现的</strong>。一般情况，有一个协程调度器作为每个协程挂起时要切换回的代码。</p>
+         <p><strong>应用场景</strong>：</p>
+         <ul>
+          <li>webserver</li><li>kv存储</li><li>图床，网络层</li>
+         </ul>
+         <p><strong>同步和异步</strong>：</p>
+         <p>"同步"和"异步"主要是指在执行任务时，任务与调用方的相互关系。在同步操作中，调用方会等待任务执行完毕然后继续执行。在异步操作中，调用方会立即返回并继续执行后续的操作，不会等待任务执行完，任务执行完可以通过回调、事件等方式通知调用方。</p>
+         <p><strong>异步的好处</strong>：</p>
+         <ul>
+          <li>多线程并发，充分利用cpu，性能好。</li>
+         </ul>
+         <p><strong>异步的坏处</strong>：</p>
+         <ul>
+          <li>代码复杂，不好理解，需要设置回调函数或者使用事件机制。</li>
+         </ul>
+         <p><strong>协程的好处</strong>：</p>
+         <ul>
+          <li>同步的编程方式，实现异步的性能。</li>
+         </ul>
+         <p><strong>互联网中协程可能被用到的场景</strong>：</p>
+         <ol>
+          <li>浏览器网页加载发送异步HTTP请求时可能用到了协程。</li><li>淘宝商店界面加载商品信息</li><li>直播界面加载评论和视频流</li><li>贴吧加载新的帖子回复</li><li>bilibili异步加载新的回复</li><li>网络游戏中加载各种位置信息</li><li>微信聊天时，需要异步加载和发送信息</li><li>音视频通话异步加载流媒体</li><li>chatgpt异步发送和接收问答消息</li><li>github的git仓库托管服务器可能使用协程处理用户的push、pull等请求</li>
+         </ol>
+         <h3><a id="2__46"></a>2. 协程的实现</h3>
+         <h4><a id="21_setjmp_48"></a>2.1 setjmp</h4>
+         <p><code>setjmp</code> 和 <code>longjmp</code> 提供了一种低级的非局部跳转机制，适用于需要在 C 程序中实现复杂控制流或异常处理的情况。但由于它们带来的复杂性和潜在风险，使用时需要小心，确保不会影响程序的可维护性和可读性。</p>
+         <p><strong>代码示例</strong>：</p>
+         <pre class="set-code-show"><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;setjmp.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+
+jmp_buf env1<span class="token punctuation">,</span> env2<span class="token punctuation">,</span> env3<span class="token punctuation">;</span>
+
+<span class="token comment">// coroutine1</span>
+<span class="token keyword">void</span> <span class="token function">func1</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+    <span class="token keyword">int</span> cur <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token function">setjmp</span><span class="token punctuation">(</span>env1<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span>
+        <span class="token function">longjmp</span><span class="token punctuation">(</span>env3<span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"func1: %d [%d]\n"</span><span class="token punctuation">,</span> ret<span class="token punctuation">,</span> cur<span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">20</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{<!-- --></span>
+	    <span class="token function">longjmp</span><span class="token punctuation">(</span>env2<span class="token punctuation">,</span> <span class="token operator">++</span>ret<span class="token punctuation">)</span><span class="token punctuation">;</span>    
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// coroutine1</span>
+<span class="token keyword">void</span> <span class="token function">func2</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+    <span class="token keyword">int</span> cur <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token function">setjmp</span><span class="token punctuation">(</span>env2<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"func2: %d [%d]\n"</span><span class="token punctuation">,</span> ret<span class="token punctuation">,</span> cur<span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">&lt;</span> <span class="token number">20</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{<!-- --></span>
+	    <span class="token function">longjmp</span><span class="token punctuation">(</span>env1<span class="token punctuation">,</span> <span class="token operator">++</span>ret<span class="token punctuation">)</span><span class="token punctuation">;</span>    
+    <span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+    <span class="token keyword">int</span> ret <span class="token operator">=</span> <span class="token function">setjmp</span><span class="token punctuation">(</span>env3<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span>ret <span class="token operator">==</span> <span class="token number">0</span><span class="token punctuation">)</span>
+    	<span class="token function">func1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">else</span>
+        <span class="token function">func2</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+         <p>从实现代码中可以看到setjmp机制需要我们自己保证协程所在的栈空间已被建立，并且还没有退出。协程所在的函数需要先手动执行，才能进行调度。协程的调度也比较麻烦。</p>
+         <h4><a id="22_ucontext_101"></a>2.2 ucontext</h4>
+         <p><code>ucontext</code> 是一种用于实现协程和用户态线程的机制。它在一些类 Unix 系统（例如 Linux）中提供了在用户态创建、切换和恢复上下文的接口。<code>ucontext</code> 通过保存和恢复 CPU 寄存器、堆栈指针等状态，允许程序在不同执行流之间切换，适用于实现协程和轻量级任务调度等。</p>
+         <p>其中保存协程上下文信息的结构体ucontext_t为</p>
+         <pre class="set-code-show"><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;ucontext.h&gt;</span></span>
+
+<span class="token keyword">typedef</span> <span class="token keyword">struct</span> <span class="token class-name">ucontext</span> <span class="token punctuation">{<!-- --></span>
+    <span class="token class-name">ucontext_t</span> <span class="token operator">*</span>uc_link<span class="token punctuation">;</span>       <span class="token comment">// 执行结束后切换到的上下文</span>
+    <span class="token class-name">sigset_t</span> uc_sigmask<span class="token punctuation">;</span>       <span class="token comment">// 信号屏蔽字</span>
+    <span class="token class-name">stack_t</span> uc_stack<span class="token punctuation">;</span>          <span class="token comment">// 栈信息（地址和大小）</span>
+    <span class="token class-name">mcontext_t</span> uc_mcontext<span class="token punctuation">;</span>    <span class="token comment">// 寄存器状态</span>
+<span class="token punctuation">}</span> <span class="token class-name">ucontext_t</span><span class="token punctuation">;</span>
+</code></pre>
+         <p><code>ucontext</code> API 提供了几个主要函数来创建和切换上下文：</p>
+         <ol>
+          <li><strong><code>getcontext(ucontext_t *ucp)</code></strong>：获取当前上下文并保存到 <code>ucp</code>。</li><li><strong><code>setcontext(const ucontext_t *ucp)</code></strong>：恢复指定上下文并跳转到该上下文。</li><li><strong><code>makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)</code></strong>：为 <code>ucp</code> 配置要执行的函数 <code>func</code> 及其参数。</li><li><strong><code>swapcontext(ucontext_t *oucp, const ucontext_t *ucp)</code></strong>：保存当前上下文到 <code>oucp</code>，然后切换到 <code>ucp</code> 上下文。</li>
+         </ol>
+         <p><strong>代码示例</strong>：</p>
+         <pre class="set-code-show"><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;ucontext.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;stdio.h&gt;</span></span>
+
+<span class="token class-name">ucontext_t</span> ctx<span class="token punctuation">[</span><span class="token number">2</span><span class="token punctuation">]</span><span class="token punctuation">;</span>
+<span class="token class-name">ucontext_t</span> main_ctx<span class="token punctuation">;</span>
+
+<span class="token keyword">int</span> count <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+
+<span class="token comment">// coroutine1</span>
+<span class="token keyword">void</span> <span class="token function">func1</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+    <span class="token keyword">int</span> cur <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">while</span> <span class="token punctuation">(</span>count<span class="token operator">++</span> <span class="token operator">&lt;</span> <span class="token number">20</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{<!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"func1: %d [%d]\n"</span><span class="token punctuation">,</span> count<span class="token punctuation">,</span> cur<span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token comment">// yield</span>
+        <span class="token function">swapcontext</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// coroutine1</span>
+<span class="token keyword">void</span> <span class="token function">func2</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+    <span class="token keyword">int</span> cur <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+    <span class="token keyword">while</span> <span class="token punctuation">(</span>count<span class="token operator">++</span> <span class="token operator">&lt;</span> <span class="token number">20</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{<!-- --></span>
+        <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"func2: %d [%d]\n"</span><span class="token punctuation">,</span> count<span class="token punctuation">,</span> cur<span class="token operator">++</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token comment">// yield</span>
+        <span class="token function">swapcontext</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">,</span> <span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">int</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+    <span class="token keyword">char</span> stack1<span class="token punctuation">[</span><span class="token number">2048</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{<!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token keyword">char</span> stack2<span class="token punctuation">[</span><span class="token number">2048</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{<!-- --></span><span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    
+    <span class="token function">getcontext</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">.</span>uc_stack<span class="token punctuation">.</span>ss_sp <span class="token operator">=</span> stack1<span class="token punctuation">;</span>
+    ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">.</span>uc_stack<span class="token punctuation">.</span>ss_size <span class="token operator">=</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>stack1<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token comment">// 执行完之后跳转的地方</span>
+    ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">.</span>uc_link <span class="token operator">=</span> <span class="token operator">&amp;</span>main_ctx<span class="token punctuation">;</span>
+    <span class="token function">makecontext</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">,</span> func1<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    
+    <span class="token function">getcontext</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ctx<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">.</span>uc_stack<span class="token punctuation">.</span>ss_sp <span class="token operator">=</span> stack2<span class="token punctuation">;</span>
+    ctx<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">.</span>uc_stack<span class="token punctuation">.</span>ss_size <span class="token operator">=</span> <span class="token keyword">sizeof</span><span class="token punctuation">(</span>stack2<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    ctx<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">.</span>uc_link <span class="token operator">=</span> <span class="token operator">&amp;</span>main_ctx<span class="token punctuation">;</span>
+    <span class="token function">makecontext</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">1</span><span class="token punctuation">]</span><span class="token punctuation">,</span> func2<span class="token punctuation">,</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    
+    <span class="token function">printf</span><span class="token punctuation">(</span><span class="token string">"start\n"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">swapcontext</span><span class="token punctuation">(</span><span class="token operator">&amp;</span>main_ctx<span class="token punctuation">,</span> <span class="token operator">&amp;</span>ctx<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    
+    <span class="token keyword">return</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+         <p><code>ucontext</code> 机制虽然强大，但需要谨慎使用。现代开发中，通常使用其他更高层的协程库，如 libco、libuv 或 Boost.Context 等。</p>
+         <h4><a id="23__187"></a>2.3 汇编实现</h4>
+         <p>使用汇编语言来实现协程的切换：主要操作为<strong>恢复和保存寄存器的值</strong>。</p>
+         <pre class="set-code-show"><code class="prism language-c"><span class="token keyword">int</span> <span class="token function">_switch</span><span class="token punctuation">(</span>nty_cpu_ctx <span class="token operator">*</span>new_ctx<span class="token punctuation">,</span> nty_cpu_ctx <span class="token operator">*</span>cur_ctx<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token function">__asm__</span><span class="token punctuation">(</span>
+<span class="token string">"    .text                                  \n"</span>
+<span class="token string">"       .p2align 4,,15                                   \n"</span>
+<span class="token string">".globl _switch                                          \n"</span>
+<span class="token string">".globl __switch                                         \n"</span>
+<span class="token string">"_switch:                                                \n"</span>
+<span class="token string">"__switch:                                               \n"</span>
+<span class="token string">"       movq %rsp, 0(%rsi)      # save stack_pointer     \n"</span>
+<span class="token string">"       movq %rbp, 8(%rsi)      # save frame_pointer     \n"</span>
+<span class="token string">"       movq (%rsp), %rax       # save insn_pointer      \n"</span>
+<span class="token string">"       movq %rax, 16(%rsi)                              \n"</span>
+<span class="token string">"       movq %rbx, 24(%rsi)     # save rbx,r12-r15       \n"</span>
+<span class="token string">"       movq %r12, 32(%rsi)                              \n"</span>
+<span class="token string">"       movq %r13, 40(%rsi)                              \n"</span>
+<span class="token string">"       movq %r14, 48(%rsi)                              \n"</span>
+<span class="token string">"       movq %r15, 56(%rsi)                              \n"</span>
+<span class="token string">"       movq 56(%rdi), %r15                              \n"</span>
+<span class="token string">"       movq 48(%rdi), %r14                              \n"</span>
+<span class="token string">"       movq 40(%rdi), %r13     # restore rbx,r12-r15    \n"</span>
+<span class="token string">"       movq 32(%rdi), %r12                              \n"</span>
+<span class="token string">"       movq 24(%rdi), %rbx                              \n"</span>
+<span class="token string">"       movq 8(%rdi), %rbp      # restore frame_pointer  \n"</span>
+<span class="token string">"       movq 0(%rdi), %rsp      # restore stack_pointer  \n"</span>
+<span class="token string">"       movq 16(%rdi), %rax     # restore insn_pointer   \n"</span>
+<span class="token string">"       movq %rax, (%rsp)                                \n"</span>
+<span class="token string">"       ret                                              \n"</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+         <p>上面的_switch函数实现了协程上下文的切换，和线程切换所作的工作类似</p>
+         <h4><a id="24__225"></a>2.4 优缺点</h4>
+         <ol>
+          <li>setjmp实现方式复杂，但是跨平台性好</li><li>ucontext实现方式简单，但是跨平台性一般</li><li>汇编实现方式复杂，跨平台型差，但是效率高</li>
+         </ol>
+         <h4><a id="25__231"></a>2.5 实现协程原语</h4>
+         <h5><a id="251_create_233"></a>2.5.1 create()</h5>
+         <p>主要工作是创建一个保存协程上下文的数据结构。一个协程的上下文必须包括如下信息：</p>
+         <ul>
+          <li><p>协程运行的函数和参数信息</p></li><li><p>cpu寄存器上下文</p></li><li><p>运行时栈上下文</p></li><li><p>协程状态</p></li><li><p>协程id</p></li><li><p>协程所属的调度器</p></li><li><p>其他信息</p></li>
+         </ul>
+         <p>一个示例如下：</p>
+         <pre class="set-code-show"><code class="prism language-c"><span class="token keyword">struct</span> <span class="token class-name">_coroutine_context</span>
+<span class="token punctuation">{<!-- --></span>
+	<span class="token class-name">ucontext_t</span> ctx<span class="token punctuation">;</span>			<span class="token comment">// 里面包括寄存器状态和栈上下文</span>
+    proc_coroutine func<span class="token punctuation">;</span>	<span class="token comment">// 协程运行的函数和参数信息</span>
+    <span class="token keyword">void</span> <span class="token operator">*</span>arg<span class="token punctuation">;</span>
+    <span class="token keyword">void</span> <span class="token operator">*</span>data<span class="token punctuation">;</span>
+    
+    coroutine_status status<span class="token punctuation">;</span>	<span class="token comment">// 协程状态</span>
+    scheduler <span class="token operator">*</span>sched<span class="token punctuation">;</span>			<span class="token comment">// 所属的调度器</span>
+    
+    <span class="token class-name">uint64_t</span> id<span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">;</span>
+</code></pre>
+         <p>创建协程所作的主要工作包括：</p>
+         <ul>
+          <li>分配一个协程上下文并初始化</li><li>获取并设置调度器</li><li>将改协程加入调度器进行管理</li>
+         </ul>
+         <h5><a id="252_yield_269"></a>2.5.2 yield()</h5>
+         <p>主要工作是调用swapcontext()或者_switch()切换会协程调度器。</p>
+         <h5><a id="253_resume_273"></a>2.5.3 resume()</h5>
+         <p>主要工作是恢复协程的执行。</p>
+         <h5><a id="254_exit_277"></a>2.5.4 exit()</h5>
+         <p>主要工作是协程从调度器中删除，然后释放协程上下文。</p>
+         <h5><a id="255_switch_281"></a>2.5.5 switch()</h5>
+         <p>协程切换，主要是切换协程的寄存器。</p>
+         <h5><a id="256_sleep_285"></a>2.5.6 sleep()</h5>
+         <p>让协程停止执行一段时间。</p>
+         <h4><a id="26__289"></a>2.6 协程调度器</h4>
+         <p>协程调度器管理协程，包括一个就绪协程队列，一个sleep协程的集合，一个运行时协程队列，一个等待协程集合。可以采用事件机制，当某事件发生时（例如某fd可读），可以将相应的协程从等待集合中取出并恢复执行。</p>
+         <p>其核心代码如下</p>
+         <pre class="set-code-show"><code class="prism language-c"><span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+	<span class="token comment">// 检查sleep集合，查看是否有协程超时</span>
+    coroutine_context <span class="token operator">*</span>expired<span class="token punctuation">;</span>
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token punctuation">(</span>expired <span class="token operator">=</span> <span class="token function">check_expired</span><span class="token punctuation">(</span>sched<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{<!-- --></span>
+        <span class="token function">resume</span><span class="token punctuation">(</span>expired<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+    
+    <span class="token comment">// 检查wait结合，查看是否有协程有监听的事件发生</span>
+    coroutine_context <span class="token operator">*</span>waked<span class="token punctuation">;</span>
+    <span class="token keyword">int</span> nready <span class="token operator">=</span> <span class="token function">epoll_wait</span><span class="token punctuation">(</span>epfd<span class="token punctuation">,</span> events<span class="token punctuation">,</span> EVENTS_SIZE<span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token keyword">for</span> <span class="token punctuation">(</span><span class="token keyword">int</span> i <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">&lt;</span> nready<span class="token punctuation">;</span> <span class="token operator">++</span>i<span class="token punctuation">)</span>
+    <span class="token punctuation">{<!-- --></span>
+        waked <span class="token operator">=</span> <span class="token function">wait_search</span><span class="token punctuation">(</span>events<span class="token punctuation">[</span>i<span class="token punctuation">]</span><span class="token punctuation">.</span>data<span class="token punctuation">.</span>fd<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">resume</span><span class="token punctuation">(</span>waked<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+    
+	<span class="token comment">// 恢复ready队列中的协程的运行</span>
+    coroutine_context <span class="token operator">*</span>rdy<span class="token punctuation">;</span>
+    <span class="token keyword">while</span> <span class="token punctuation">(</span><span class="token operator">!</span><span class="token function">is_ready_empty</span><span class="token punctuation">(</span>sched<span class="token punctuation">)</span><span class="token punctuation">)</span>
+    <span class="token punctuation">{<!-- --></span>
+        rdt <span class="token operator">=</span> <span class="token function">ready_pop</span><span class="token punctuation">(</span>sched<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token function">resyme</span><span class="token punctuation">(</span>rdt<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+         <h3><a id="3_hook_324"></a>3. 利用hook使用协程版本的库函数</h3>
+         <p>利用运行时动态链接，可以在运行时将一个函数替换为为使用协程的版本。</p>
+         <p>例如，以下代码将read函数在运行时替换为了另一个函数：</p>
+         <pre class="set-code-show"><code class="prism language-c"><span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;dlfcn.h&gt;</span></span>
+<span class="token macro property"><span class="token directive-hash">#</span><span class="token directive keyword">include</span> <span class="token string">&lt;unistd.h&gt;</span></span>
+
+<span class="token keyword">typedef</span> <span class="token class-name">ssize_t</span> <span class="token punctuation">(</span><span class="token operator">*</span><span class="token class-name">readf_t</span><span class="token punctuation">)</span><span class="token punctuation">(</span><span class="token keyword">int</span> fd<span class="token punctuation">,</span> <span class="token keyword">void</span> <span class="token operator">*</span>buf<span class="token punctuation">,</span> <span class="token class-name">size_t</span> count<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token class-name">readf_t</span> readf<span class="token punctuation">;</span>
+
+<span class="token keyword">void</span> <span class="token function">init_hook</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+	readf <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token class-name">readf_t</span><span class="token punctuation">)</span><span class="token function">dlsym</span><span class="token punctuation">(</span>RTLD_NEXT<span class="token punctuation">,</span> <span class="token string">"read"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token class-name">ssize_t</span> <span class="token function">read</span><span class="token punctuation">(</span><span class="token keyword">int</span> fd<span class="token punctuation">,</span> <span class="token keyword">void</span> <span class="token operator">*</span>buf<span class="token punctuation">,</span> <span class="token class-name">size_t</span> count<span class="token punctuation">)</span>
+<span class="token punctuation">{<!-- --></span>
+    <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>readf<span class="token punctuation">)</span> <span class="token function">init_hook</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    
+    <span class="token comment">// 如果对应的fd不可读，那么就挂起协程</span>
+    <span class="token function">yield_if_not_ok</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span> POLLIN <span class="token operator">|</span> POLLERR <span class="token operator">|</span> POLLHUP<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    
+   	<span class="token keyword">return</span> <span class="token function">readf</span><span class="token punctuation">(</span>fd<span class="token punctuation">,</span> buf<span class="token punctuation">,</span> count<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+         <h3><a id="_354"></a>学习参考</h3>
+         <p>学习更多相关知识请参考<a href="https://github.com/0voice">零声 github</a>。</p></div>
+        <link href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/editerView/markdown_views-375c595788.css" rel="stylesheet">
+        <link href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/style-e504d6a974.css" rel="stylesheet"></div>
+      </article></div>
+    </main></div><div class="recommend-right align-items-stretch clearfix" id="rightAside" data-type="recommend"></div></div>
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/lib/cboxEditor/1.1.6/embed-editor.min.css">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blog_editor_html/release1.6.12/ckeditor/plugins/codesnippet/lib/highlight/styles/atom-one-dark.css">
+  <script>
+    $(".MathJax").remove();
+    if ($('div.markdown_views pre.prettyprint code.hljs').length > 0) {
+      $('div.markdown_views')[0].className = 'markdown_views';
+    }
+  </script>
+  <script type="text/javascript" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blog_mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      "HTML-CSS": {
+        linebreaks: { automatic: true, width: "94%container" },
+        imageFont: null
+      },
+      tex2jax: {
+      preview: "none",
+      ignoreClass:"title-article"
+      },
+      mml2jax: {
+      preview: 'none'
+      }
+    });
+  </script>
+ </body>
+</html>

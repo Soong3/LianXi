@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8">
+  <link rel="canonical" href="https://blog.csdn.net/jinbaotong/article/details/145060671">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="renderer" content="webkit">
+  <meta name="force-rendering" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="report" content="{&quot;pid&quot;: &quot;blog&quot;, &quot;spm&quot;:&quot;1001.2101&quot;}">
+  <meta name="referrer" content="always">
+  <meta http-equiv="Cache-Control" content="no-siteapp">
+  <link rel="alternate" media="handheld" href="#">
+  <meta name="shenma-site-verification" content="5a59773ab8077d4a62bf469ab966a63b_1497598848">
+  <meta name="applicable-device" content="pc">
+  <link href="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/static/logo/favicon32.ico" rel="shortcut icon" type="image/x-icon">
+  <title>基于DPDK的用户态协议栈（2）基于DPDK实现UDP的数据接收_c++基于dpdk接受并解析udp报文,发送到kafka-CSDN博客</title>
+  <meta name="keywords" content="c++基于dpdk接受并解析udp报文,发送到kafka">
+  <meta name="csdn-baidu-search" content="{&quot;autorun&quot;:true,&quot;install&quot;:true,&quot;keyword&quot;:&quot;c++基于dpdk接受并解析udp报文,发送到kafka&quot;}">
+  <meta name="description" content="文章浏览阅读841次，点赞25次，收藏3次。在DPDK中，EAL（Environment Abstraction Layer，环境抽象层）它为用户空间的应用程序提供了一个与底层硬件和操作系统交互的接口。初始化EAL是DPDK应用程序启动时的首要任务，初始化成功后才可以进行后续的配置步骤。rte_pktmbuf_pool_create是DPDK中用于创建专门用于储存数据包内存缓冲区（mbuf）的内存池。mubf是DPDK用于表示和处理网络数据包的基本数据结构。创建一个mbuf内存池，用于存储接收到的数据包。一、使用DPDK实现UDP的数据接收流程。_c++基于dpdk接受并解析udp报文,发送到kafka">
+  <link rel="stylesheet" type="text/css" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/css/detail_enter-2569705caf.min.css">
+  <link rel="stylesheet" type="text/css" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/themesSkin/skin-1024/skin-1024-ecd36efea2.min.css">
+  <script src="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/lib/jquery/1.12.4/jquery.min.js" type="text/javascript"></script>
+  <meta name="toolbar" content="{&quot;type&quot;:&quot;0&quot;,&quot;fixModel&quot;:&quot;1&quot;}">
+  <link rel="stylesheet" type="text/css" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/public/sandalstrap/1.4/css/sandalstrap.min.css">
+  <style>
+        .MathJax, .MathJax_Message, .MathJax_Preview{
+            display: none
+        }
+    </style>
+ </head>
+ <body class="nodata  " style="">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/css/blog_code-01256533b5.min.css">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/editerView/chart-3456820cac.css">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/lib/swiper/6.0.4/css/swiper.css"><div class="main_father clearfix d-flex justify-content-center mainfather-concision" style="height:100%;"><div class="container clearfix container-concision" id="mainBox">
+    <main>
+     <div class="blog-content-box"><div class="article-header-box"><div class="article-header"><div class="article-title-box">
+         <h1 class="title-article" id="articleContentId">基于DPDK的用户态协议栈（2）基于DPDK实现UDP的数据接收</h1></div><div class="article-info-box"><div class="up-time">
+          最新推荐文章于&nbsp;2025-03-14 14:27:11&nbsp;发布</div><div class="article-bar-top-box"><div class="article-bar-top"><img class="article-type-img" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/original.png" alt=""><div class="bar-content"> <a class="follow-nickName " href="https://blog.csdn.net/jinbaotong" target="_blank" rel="noopener" title="jinbaotong">jinbaotong</a> <img class="article-time-img article-heard-img" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/newCurrentTime2.png" alt=""> <span class="time blog-postTime" data-time="2025-01-11 11:02:02">最新推荐文章于&nbsp;2025-03-14 14:27:11&nbsp;发布</span>
+            <div class="read-count-box"><img class="article-read-img article-heard-img" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/articleReadEyes2.png" alt=""> <span class="read-count">阅读量841</span> <a id="blog_detail_zk_collection" class="un-collection" data-report-click="{&quot;mod&quot;:&quot;popu_823&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4232&quot;,&quot;ab&quot;:&quot;new&quot;}"> <img class="article-collect-img article-heard-img un-collect-status isdefault" style="display:inline-block" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/tobarCollect2.png" alt=""> <img class="article-collect-img article-heard-img collect-status isactive" style="display:none" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/tobarCollectionActive2.png" alt=""> <span class="name">收藏</span> <span class="get-collection"> 3 </span> </a>
+             <div class="read-count-box is-like" data-type="top"><img class="article-read-img article-heard-img" style="display:none" id="is-like-imgactive-new" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/newHeart2023Active.png" alt=""> <img class="article-read-img article-heard-img" style="display:block" id="is-like-img-new" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/pc/img/newHeart2023Black.png" alt=""> <span class="read-count" id="blog-digg-num">点赞数 25 </span></div></div></div></div><div class="operating"><a class="href-article-edit slide-toggle">CC 4.0 BY-SA版权</a></div></div><div class="blog-tags-box"><div class="tags-box artic-tag-box"><span class="label">文章标签：</span> <a rel="nofollow" data-report-query="spm=1001.2101.3001.4223" data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;udp&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;udp\&quot;}&quot;}" data-report-view="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;udp&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;udp\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=udp&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=&amp;from_tracking_code=tag_word&amp;from_code=app_blog_art" target="_blank">udp</a> <a rel="nofollow" data-report-query="spm=1001.2101.3001.4223" data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;网络协议&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;网络协议\&quot;}&quot;}" data-report-view="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;网络协议&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;网络协议\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=&amp;from_tracking_code=tag_word&amp;from_code=app_blog_art" target="_blank">网络协议</a> <a rel="nofollow" data-report-query="spm=1001.2101.3001.4223" data-report-click="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;网络&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;网络\&quot;}&quot;}" data-report-view="{&quot;mod&quot;:&quot;popu_626&quot;,&quot;spm&quot;:&quot;1001.2101.3001.4223&quot;,&quot;strategy&quot;:&quot;网络&quot;,&quot;ab&quot;:&quot;new&quot;,&quot;extra&quot;:&quot;{\&quot;searchword\&quot;:\&quot;网络\&quot;}&quot;}" class="tag-link" href="https://so.csdn.net/so/search/s.do?q=%E7%BD%91%E7%BB%9C&amp;t=all&amp;o=vip&amp;s=&amp;l=&amp;f=&amp;viparticle=&amp;from_tracking_code=tag_word&amp;from_code=app_blog_art" target="_blank">网络</a></div></div><div class="slide-content-box"><div class="article-copyright"><div class="creativecommons">
+            版权声明：本文为博主原创文章，遵循<a href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener"> CC 4.0 BY-SA </a>版权协议，转载请附上原文出处链接和本声明。</div><div class="article-source-link">
+            本文链接：<a href="https://blog.csdn.net/jinbaotong/article/details/145060671" target="_blank">https://blog.csdn.net/jinbaotong/article/details/145060671</a></div></div></div></div></div></div><div id="blogHuaweiyunAdvert" class=""></div>
+      <article class="baidu_pl"><div id="article_content" class="article_content clearfix">
+        <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/editerView/kdoc_html_views-1a98987dfd.css">
+        <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blogv2/dist/mdeditor/css/editerView/ck_htmledit_views-10bf609291.css"><div id="content_views" class="htmledit_views atom-one-dark">
+         <p>注：本文只实现了数据接收部分</p>
+         <p>一、使用DPDK实现UDP的数据接收流程</p>
+         <p>1.1初始化EAL</p>
+         <pre class="set-code-show"><code class="language-cpp">main(int argc, char *argv[]) {//main函数的标准参数，用于接收命令行参数。argc表示参数的数量，argv是一个指向字符串数组的指针，这些字符串是传递给程序的命令行参数。
+    // 初始化EAL。
+    if (rte_eal_init(argc, argv) &lt; 0) {//DPDK提供用于初始化EAL的函数，接收与main函数相同的命令行参数，成功返回0 ，如果初始化失败返回一个负值。
+        rte_exit(EXIT_FAILURE, "Error with EAL init\n");//DPDK提供的用于出现错误时请理资源并退出程序
+    }</code></pre>
+         <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;在DPDK中，EAL（Environment Abstraction Layer，环境抽象层）它为用户空间的应用程序提供了一个与底层硬件和操作系统交互的接口。初始化EAL是DPDK应用程序启动时的首要任务，初始化成功后才可以进行后续的配置步骤。</p>
+         <p>1.2创建mbuf内存池</p>
+         <p>创建一个mbuf内存池，用于存储接收到的数据包。</p>
+         <pre class="set-code-show"><code class="language-cpp">#define NUM_MBUFS  4096
+struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create("mbuf pool", NUM_MBUFS, 0, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    if (mbuf_pool == NULL) {
+        rte_exit(EXIT_FAILURE, "Could not create mbuf pool\n");
+    }</code></pre>
+         <p>rte_pktmbuf_pool_create是DPDK中用于创建专门用于储存数据包内存缓冲区（mbuf）的内存池。mubf是DPDK用于表示和处理网络数据包的基本数据结构。以下是该函数的参数：</p>
+         <pre class="set-code-show"><code class="language-cpp">struct rte_mempool *rte_pktmbuf_pool_create(const char *name,//内存池的名称
+                        unsigned int n,//预先分配并保存在内存池中的mbuf数量
+                        unsigned int cache_size,//在内存池的本地缓存中可以存储的mbuf的个数。如果设置为0则不用缓存。适当的设置缓存大小可以减少内存分配和释放的开销。
+                        unsigned int private_data_size,//每个mbuf可以附加的私有数据大小。不需要则设置为0.
+                        uint16_t mbuf_data_room_size,//mbuf中用于存储数据包数据的空间大小。RTE_MBUF_DEFAULT_BUF_SIZE 通常为一个合理的默认值
+                        int socket_id);//指定在哪个NUMA节点上分配内存池。rte_socket_id() 函数可以用于获取当前线程的 NUMA 节点 ID。</code></pre>
+         <p>1.3初始化网卡端口</p>
+         <pre class="set-code-show"><code class="language-cpp">static const struct rte_eth_conf port_conf_default = {
+	.rxmode = { .max_rx_pkt_len = RTE_ETHER_MAX_LEN }//设置了最大接收数据包长度
+};
+
+static int ustack_init_port(struct rte_mempool *mbuf_pool) {
+    uint16_t nb_sys_ports = rte_eth_dev_count_avail(); // 获取系统中可用的网卡设备数量。
+    if (nb_sys_ports == 0) { // 如果没有可用的网卡设备，则退出程序。
+        rte_exit(EXIT_FAILURE, "No Supported eth found\n");
+    }
+    const int num_rx_queues = 1;
+
+	const int num_tx_queues = 0;
+
+    // 配置以太网端口，设置接收和发送队列的数量，以及使用默认配置（但这里默认配置未定义）。
+    rte_eth_dev_configure(global_portid, num_rx_queues, num_tx_queues, &amp;port_conf_default); 
+
+    // 设置接收队列。
+    if (rte_eth_rx_queue_setup(global_portid, 0, 128,rte_eth_dev_socket_id(global_portid), NULL, mbuf_pool) &lt; 0) {
+        rte_exit(EXIT_FAILURE, "Could not setup RX queue\n");
+    }
+
+    // 启动以太网端口。
+    if (rte_eth_dev_start(global_portid) &lt; 0) {
+        rte_exit(EXIT_FAILURE, "Could not start\n");
+    }
+
+    return 0; // 初始化成功。
+}
+</code></pre>
+         <table border="1" cellpadding="1" cellspacing="1" style="width:500px;">
+          <tbody>
+           <tr>
+            <td>rte_eth_dev_count_avail()</td>
+            <td>用于获取当前可用的以太网设备（网卡）数量</td>
+           </tr>
+           <tr>
+            <td>rte_eth_dev_configure()</td>
+            <td>用于配置以太网设备（网卡）的参数。允许开发者设置端口的接收（RX）队列和发送（TX）队列的数量，以及应用特定的端口配置。</td>
+           </tr>
+           <tr>
+            <td>rte_eth_rx_queue_setup</td>
+            <td>用于配置以太网设备的接收队列</td>
+           </tr>
+           <tr>
+            <td>rte_eth_dev_start</td>
+            <td>用于启动一个以太网设备。</td>
+           </tr>
+          </tbody>
+         </table>
+         <pre class="set-code-show"><code class="language-cpp">int rte_eth_dev_configure(
+    uint16_t portid,//要配置的以太网设备的端口ID
+    uint16_t nb_rx_queue,//接收队列的数量
+    uint16_t nb_tx_queue,//发送队列的数量
+    const struct rte_eth_conf *eth_conf);//包含了端口的特定配置选项</code></pre>
+         <pre class="set-code-show"><code class="language-cpp">int rte_eth_rx_queue_setup(uint16_t portid,//网卡的端口ID
+                           uint16_t rx_queue_id,//接收队列的ID
+                           uint16_t nb_rx_desc,//接收描述符的数量。用于存储接收到的数据包信息
+                           unsigned int socket_id,//指定内存分配所在的NUMA节点ID。有助于优化内存访问性能
+                           const struct rte_eth_rxconf *rxconf,//指向一个结构指针，包含了接收队列的配置信息。
+                           struct rte_mempool *mp);//指向内存池的指针</code></pre>
+         <p>1.4接收和处理数据包</p>
+         <pre class="set-code-show"><code class="language-cpp">int main(int argc, char *argv[]) {
+......
+
+    // 无限循环，用于持续接收和处理数据包。
+    while (1) {
+        struct rte_mbuf *mbufs[BURST_SIZE] = {0}; // 定义一个mbuf数组，用于存储从端口接收到的数据包。
+
+        // 从指定的接收队列中批量接收数据包。
+        uint16_t num_recvd = rte_eth_rx_burst(global_portid, 0, mbufs, BURST_SIZE);
+        if (num_recvd &gt; BURST_SIZE) { // 判断接收是否正常。
+            rte_exit(EXIT_FAILURE, "Error receiving from eth\n");
+        }
+
+        // 遍历接收到的数据包。
+        for (int i = 0; i &lt; num_recvd; i++) {
+            // 获取数据包的以太网头部。
+            struct rte_ether_hdr *ethhdr = rte_pktmbuf_mtod(mbufs[i], struct rte_ether_hdr *);
+            // 如果数据包不是IPv4类型，则跳过。使用rte_cpu_to_be_16宏将主机的小端字节序转换为大端字节序。因为网络协议通常使用大端字节序。
+            if (ethhdr-&gt;ether_type != rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4)) {
+                continue;
+            }
+
+            // 获取数据包的IPv4头部。
+            struct rte_ipv4_hdr *iphdr = rte_pktmbuf_mtod_offset(mbufs[i], struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
+            // 如果下一个协议是UDP，则处理UDP数据包。
+            if (iphdr-&gt;next_proto_id == IPPROTO_UDP) {
+                // 注意：这里的处理方式有误，因为udphdr+1可能指向无效内存。
+                struct rte_udp_hdr *udphdr = (struct rte_udp_hdr *)(iphdr + 1);
+                // 尝试打印UDP数据包的内容（这里存在安全风险）。
+                printf("udp : %s\n", (char*)(udphdr+1)); // 
+            }
+        }
+    }
+}</code></pre>
+         <table border="1" cellpadding="1" cellspacing="1" style="width:500px;">
+          <tbody>
+           <tr>
+            <td>rte_eth_rx_burst</td>
+            <td>用于从指定的以太网设备接收队列中批量获取数据包。 <p></p></td>
+           </tr>
+          </tbody>
+         </table>
+         <pre class="set-code-show"><code class="language-cpp">uint16_t rte_eth_rx_burst(uint16_t portid,//网卡端口ID
+                          uint16_t rx_queue_id,//接收数据包的接收队列ID
+                          struct rte_mbuf **rx_pkts,//指向结构体指针数组的指针，该数组用于存储从接收队列中获取的数据包
+                          uint16_t nb_pkts);//期望从接收队列中获取数据包数量</code></pre>
+         <p>1.5完整代码</p>
+         <pre class="set-code-show"><code class="language-cpp">#include &lt;stdio.h&gt; 
+
+#include &lt;rte_eal.h&gt; 
+#include &lt;rte_ethdev.h&gt;
+
+#include &lt;arpa/inet.h&gt; 
+
+int global_portid = 0; // 定义一个全局变量，用于存储网卡的ID。
+
+// 定义内存池大小和每次接收操作的最大数据包数量。
+#define NUM_MBUFS  4096 
+#define BURST_SIZE 128
+
+static const struct rte_eth_conf port_conf_default = {
+	.rxmode = { .max_rx_pkt_len = RTE_ETHER_MAX_LEN }
+};
+
+// 初始化以太网端口的函数。
+static int ustack_init_port(struct rte_mempool *mbuf_pool) {
+    uint16_t nb_sys_ports = rte_eth_dev_count_avail(); // 获取系统中可用的网卡设备数量。
+    if (nb_sys_ports == 0) { // 如果没有可用的网卡设备，则退出程序。
+        rte_exit(EXIT_FAILURE, "No Supported eth found\n");
+    }
+    // 配置以太网端口，设置接收和发送队列的数量，以及使用默认配置（但这里默认配置未定义）。
+    rte_eth_dev_configure(global_portid, 1, 0, &amp;port_conf_default); 
+
+    // 设置接收队列。
+    if (rte_eth_rx_queue_setup(global_portid, 0, 128,rte_eth_dev_socket_id(global_portid), NULL, mbuf_pool) &lt; 0) {
+        rte_exit(EXIT_FAILURE, "Could not setup RX queue\n");
+    }
+
+    // 启动以太网端口。
+    if (rte_eth_dev_start(global_portid) &lt; 0) {
+        rte_exit(EXIT_FAILURE, "Could not start\n");
+    }
+
+    return 0; // 初始化成功。
+}
+
+// 主函数。
+int main(int argc, char *argv[]) {
+    // 初始化EAL。
+    if (rte_eal_init(argc, argv) &lt; 0) {
+        rte_exit(EXIT_FAILURE, "Error with EAL init\n");
+    }
+
+    // 创建一个mbuf内存池，用于存储接收到的数据包。
+    struct rte_mempool *mbuf_pool = rte_pktmbuf_pool_create("mbuf pool", NUM_MBUFS, 0, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    if (mbuf_pool == NULL) {
+        rte_exit(EXIT_FAILURE, "Could not create mbuf pool\n");
+    }
+
+    // 初始化以太网端口。
+    ustack_init_port(mbuf_pool);
+
+    // 无限循环，用于持续接收和处理数据包。
+    while (1) {
+        struct rte_mbuf *mbufs[BURST_SIZE] = {0}; // 定义一个mbuf数组，用于存储从端口接收到的数据包。
+
+        // 从指定的接收队列中批量接收数据包。
+        uint16_t num_recvd = rte_eth_rx_burst(global_portid, 0, mbufs, BURST_SIZE);
+        if (num_recvd &gt; BURST_SIZE) { 
+            rte_exit(EXIT_FAILURE, "Error receiving from eth\n");
+        }
+
+        // 遍历接收到的数据包。
+        for (int i = 0; i &lt; num_recvd; i++) {
+            // 获取数据包的以太网头部。
+            struct rte_ether_hdr *ethhdr = rte_pktmbuf_mtod(mbufs[i], struct rte_ether_hdr *);
+            // 如果数据包不是IPv4类型，则跳过。
+            if (ethhdr-&gt;ether_type != rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4)) {
+                continue;
+            }
+
+            // 获取数据包的IPv4头部。
+            struct rte_ipv4_hdr *iphdr = rte_pktmbuf_mtod_offset(mbufs[i], struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
+            // 如果下一个协议是UDP，则处理UDP数据包。
+            if (iphdr-&gt;next_proto_id == IPPROTO_UDP) {
+
+                struct rte_udp_hdr *udphdr = (struct rte_udp_hdr *)(iphdr + 1);
+
+                printf("udp : %s\n", (char*)(udphdr+1)); 
+            }
+        }
+    }
+}</code></pre>
+         <p><a href="https://github.com/0voice" title="0voice · GitHub">0voice · GitHub</a></p></div></div>
+      </article></div>
+    </main></div><div class="recommend-right align-items-stretch clearfix" id="rightAside" data-type="recommend"></div></div>
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blog_editor_html/release1.6.12/ckeditor/plugins/chart/chart.css">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/g/lib/cboxEditor/1.1.6/embed-editor.min.css">
+  <link rel="stylesheet" href="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blog_editor_html/release1.6.12/ckeditor/plugins/codesnippet/lib/highlight/styles/atom-one-dark.css">
+  <script>
+    $(".MathJax").remove();
+    if ($('div.markdown_views pre.prettyprint code.hljs').length > 0) {
+      $('div.markdown_views')[0].className = 'markdown_views';
+    }
+  </script>
+  <script type="text/javascript" src="http://toolman.ddnsfree.com:8585/cn/csdnimg/release/blog_mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      "HTML-CSS": {
+        linebreaks: { automatic: true, width: "94%container" },
+        imageFont: null
+      },
+      tex2jax: {
+      preview: "none",
+      ignoreClass:"title-article"
+      },
+      mml2jax: {
+      preview: 'none'
+      }
+    });
+  </script>
+ </body> 
+</html>
