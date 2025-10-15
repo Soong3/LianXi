@@ -91,7 +91,7 @@ int accept_cb(int fd){
 
     if ((client_fd % 1000) == 0) {	
 		
-		struct timeval current;		
+		static struct timeval current;		
 		gettimeofday(&current, NULL);	
 		
 		int time_used = TIME_SUB_MS(current, begin);		
@@ -132,7 +132,7 @@ int send_cb(int fd){
     if(coon_list[fd].wlength != 0){
         int n = send(fd,coon_list[fd].wbuffer,coon_list[fd].wlength,0);
     }
-
+    printf("send data: %s\n",coon_list[fd].wbuffer);
     set_event(fd,EPOLLIN,1);//注册读事件
     return n;
 }
