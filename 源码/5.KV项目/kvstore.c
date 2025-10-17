@@ -1,23 +1,44 @@
 #include "kvstore.h"
 #include "reactor.h"
- 
+
+#define ENABLE_ARRAY 0
+#define ENABLE_RBTREE 1
+
+#if ENABLE_ARRAY
 extern kvs_array_t global_array;
+#endif
+
+#if ENABLE_RBTREE
+extern rbtree global_tree;
+#endif
 
 const char *commend[] = {
-	"SET","GET","DEL","MOD","EXIST"
+
+#if ENABLE_ARRAY
+	"SET","GET","DEL","MOD","EXIST",
+#endif
+	"RSET", "RGET", "RDEL", "RMOD", "REXIST"
 };
 
 enum{
-	KVS_CMD_SET = 0,
+	KVS_CMD_START = 0,
+#if ENABLE_ARRAY
+	KVS_CMD_SET = KVS_CMD_START,
 	KVS_CMD_GET,
 	KVS_CMD_DEL,
 	KVS_CMD_MOD,
 	KVS_CMD_EXIST,
-	KVS_CMD_COUT
+#endif
+	KVS_CMD_RSET = KVS_CMD_START,
+	KVS_CMD_RGET,
+	KVS_CMD_RDEL,
+	KVS_CMD_RMOD,
+	KVS_CMD_REXIST,
+	KVS_CMD_COUT,
 };
 
 
-const char *response[] = {
+char *response[] = {
 
 };
 
@@ -43,8 +64,16 @@ int kvs_split(char *msg,char *tokens[]){
 
 //启动kvstore引擎
 int init_kvengine(void){
+
+#if ENABLE_ARRAY
     memset(&global_array, 0, sizeof(kvs_array_t));
 	kvs_array_create(&global_array);
+#endif
+
+#if ENABLE_RBTREE
+	memset(&global_tree, 0, sizeof(rbtree));
+	kvs_rbtree_create(&global_tree);
+#endif
 	return 0;
 }
 
@@ -54,9 +83,16 @@ int init_kvengine(void){
 //tokens[2] : Value
 int kvs_parser(char *msg, int length, char *response){
     if(msg == NULL || length <= 0 || response == NULL) return -1;
+	//printf("[DEBUG] msg='%s', length=%d\n", msg, length);  // 检查输入是否合法
 	char *tokens[KVS_MAX_TOKENS_LENGTH] = {0};
 	int token_count = kvs_split(msg, tokens);
 	if(token_count == -1) return -1;
+	//int token_count = kvs_split(msg, tokens);
+	if (token_count <= 0) {
+    	sprintf(response, "ERROR: Failed to parse command\r\n");
+    return -1;
+	}
+	printf("[DEBUG] First token: %s\n", tokens[0]);  // 检查 tokens[0] 是否非空
 
 	int i = 0;
 	for(i = 0; i < KVS_CMD_COUT; i++){
@@ -65,10 +101,18 @@ int kvs_parser(char *msg, int length, char *response){
 		}
 	}
 	
+	if(i == KVS_CMD_COUT){
+        perror("cmd error");
+        return -2;
+    }
+
 	char *key = tokens[1];
 	char *value = tokens[2];
 	int ret = 0;
+	printf("[DEBUG] Secend token: %s\n", tokens[1]);
+	printf("[DEBUG] Command index: %d\n", i);
 	switch(i){
+#if ENABLE_ARRAY
 	    case KVS_CMD_SET:
 			ret = kvs_array_set(&global_array, key, value);
 			if(ret < 0){
@@ -116,10 +160,71 @@ int kvs_parser(char *msg, int length, char *response){
 			}else{
 				sprintf(response,"MO EXITE\r\n");
 			}
-
+			break;
 	}
-    return strlen(response);   
+#endif
+
+#if ENABLE_RBTREE
+	    case KVS_CMD_RSET:
+		printf("[DEBUG] Third token: %s\n", tokens[2]);
+		ret = kvs_rbtree_set(&global_tree ,key,value);
+		if (ret < 0) {
+			sprintf(response,"ERROR\r\n");
+		} else if (ret == 0) {
+			printf("[DEBUG] Set key %s to %s\n",key,value);
+			sprintf(response,"OK\r\n");
+		} else {
+			sprintf(response,"EXIST\r\n");
+		} 
+		
+		break;
+	case KVS_CMD_RGET: {
+		char *result = kvs_rbtree_get(&global_tree, key);
+		if (result == NULL) {
+			sprintf(response,"NO EXIST\r\n");
+		} else {
+			sprintf(response,"%s\r\n",result);
+		}
+		break;
+	}
+	case KVS_CMD_RDEL:
+		ret = kvs_rbtree_delete(&global_tree ,key);
+		if (ret < 0) {
+			sprintf(response,"ERROR\r\n");
+ 		} else if (ret == 0) {
+			sprintf(response,"OK\r\n");
+		} else {
+			sprintf(response,"NO EXIST\r\n");
+		}
+		break;
+	case KVS_CMD_RMOD:
+		ret = kvs_rbtree_modify(&global_tree ,key, value);
+		if (ret < 0) {
+			sprintf(response,"ERROR\r\n");
+ 		} else if (ret == 0) {
+			sprintf(response,"OK\r\n");
+		} else {
+			sprintf(response,"NO EXIST\r\n");
+		}
+		break;
+	case KVS_CMD_REXIST:
+		ret = kvs_rbtree_exists(&global_tree ,key);
+		if (ret == 0) {
+			sprintf(response,"EXIST\r\n");
+		} else if (ret == 1){
+			sprintf(response,"NO EXIST\r\n");
+		}
+        else {
+            sprintf(response,"error\r\n");
+        }
+		break;
+	
+	
+#endif
+	}	
+    return strlen(response);  
 }
+
 /*
 //定义一个kvs协议，传给网络层。
 int kvs_protocol(char *msg, int length, char *response){
@@ -142,5 +247,5 @@ int main(int argc, char *argv[]){
 
     init_kvengine();
 	reactor_start(port, kvs_parser);
-
+	return 0;
 }
