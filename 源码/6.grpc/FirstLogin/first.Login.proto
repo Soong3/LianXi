@@ -1,0 +1,32 @@
+syntax = "proto3";	// 语法
+
+package first.Login;	// 包名
+
+service LoginService {
+    rpc Regist(IMRegistRequest) returns (IMRegistResponse) {}// 注册
+    rpc Login(IMLoginRequest) returns (IMLoginResponse) {}  // 登录
+}
+
+// 注册请求
+message IMRegistRequest {
+    string username = 1;
+    string password = 2;
+}
+
+// 注册响应
+message IMRegistResponse {
+    int32 code = 1;
+    string msg = 2;
+}
+
+// 登录请求
+message IMLoginRequest {
+    string username = 1;
+    string password = 2;
+}
+
+// 登录响应
+message IMLoginResponse {
+    int32 code = 1;
+    string msg = 2;
+}

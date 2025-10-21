@@ -1,0 +1,2 @@
+/usr/bin/ar qc libim_grpc_proto.a CMakeFiles/im_grpc_proto.dir/first.Login.grpc.pb.cc.o CMakeFiles/im_grpc_proto.dir/first.Login.pb.cc.o
+/usr/bin/ranlib libim_grpc_proto.a
