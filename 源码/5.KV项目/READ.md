@@ -1,5 +1,14 @@
 
-KV存储项目
+//学习参考
+https://blog.csdn.net/jc0620/article/details/149784162?spm=1001.2014.3001.5506
+
+https://blog.csdn.net/jinbaotong/article/details/145352968?spm=1001.2014.3001.5506
+
+https://blog.csdn.net/jinbaotong/article/details/145371314?spm=1001.2014.3001.5506
+
+https://blog.csdn.net/lsj2889281818/article/details/149633755?spm=1001.2014.3001.5506
+
+//KV存储项目
 ![Alt text](ba2a2379540b4f559b4456fa02d2e617.png)
 
 一.网络层（reactor.c reactor.h）：使用reactor模式框架，实现多路复用，实现高并发，也可以用协程或io_uring实现;
